@@ -15,8 +15,8 @@ logger.info("initializing_application", version="1.0.0")
 
 # Create FastAPI app
 app = FastAPI(
-    title="Six-Figure AI Engineering API",
-    description="Backend API for Six-Figure AI Engineering application",
+    title="Retriva RAG",
+    description="Backend API for Retriva RAG System",
     version="1.0.0",
 )
 
