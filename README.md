@@ -35,27 +35,36 @@
 
 ---
 
-## 🏗️ Architecture Overview
 
 ```
-User
- │
- ▼
-FastAPI  ──────────────────────────────────────────────────────────
- │                                                                  │
- │  File / URL                                                Chat Message
- ▼                                                                  ▼
-Celery + Redis                                            LangGraph Agent
-(Async Ingestion)                                    (Simple RAG / Supervisor)
- │                                                                  │
- ▼                                                                  ▼
-Ingestion Pipeline                                       Retrieval Pipeline
- │                                                                  │
- ▼                                                                  ▼
-Supabase pgvector ──────────────────────────────────── Supabase pgvector
-(document_chunks)                                       (vector + keyword search)
+                                👤 User
+                                   │
+                                   ▼
+                              ⚡ FastAPI
+                             /          \
+                   File / URL            Chat Message
+                        /                      \
+                       ▼                        ▼
+              🌿 Celery + Redis          🕸️ LangGraph Agent
+              (Async Ingestion)               /       \
+                       │               Simple RAG   🧠 Supervisor
+                       ▼                   │          /         \
+              📥 Ingestion Pipeline         │   📚 RAG        🌐 Web
+              │                            │   Sub-Agent     Sub-Agent
+              ├── 📝 Text                  │   (pgvector)    (Tavily /
+              ├── 📊 Tables                │                  DuckDuckGo)
+              └── 🖼️  Images               │          \         /
+                       │                  │           Synthesize
+                       ▼                  │                │
+       ✂️  Chunk → Summarize + original   │                │
+              🧠 GPT-4o (tables/images)   │                │
+              🔢 Embed (1536-dim)         │                │
+                       │                  └────────────────┘
+                       └──────────────────────────┬──────────────────
+                                                  ▼
+                                     🐘 Supabase + pgvector
+                                  (document_chunks · vector · fts)
 ```
-
 ---
 
 ## 🛠️ Tech Stack
