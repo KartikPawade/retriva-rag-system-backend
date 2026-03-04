@@ -77,87 +77,40 @@ flowchart TD
 ---
 
 
-## Retrival Pipeline with Rag Agent detailed :
+## Retrieval Pipeline with Rag Agent detailed :
 
 ```mermaid
 flowchart TD
 
-    %% ── ENTRY POINT ──────────────────────────────
-    USER(["👤 User"])
-    USER -->|POST /projects/:id/chats/:id/messages| API["⚡ FastAPI\nsend_message endpoint"]
+    USER(["👤 User"]) -->|send message| API["⚡ FastAPI"]
 
-    API -->|Step 1 - Save to DB| MSGDB[("🗄️ Supabase\nmessages table")]
-    API -->|Step 2 - Load from DB| SETTINGS["⚙️ project_settings\nagent_type · rag_strategy\nchunks_per_search · similarity_threshold\nfinal_context_size · vector_weight\nkeyword_weight · number_of_queries"]
-    API -->|Step 3 - Last 10 msgs| HISTORY["💬 Chat History\nformat_chat_history\nUser + Assistant turns"]
+    API --> SETUP["Load project_settings\nLoad chat history"]
+    SETUP --> GRAPH
 
-    %% ── LANGGRAPH AGENT ──────────────────────────
-    SETTINGS -->|agent_type = simple| GRAPH["🕸️ LangGraph StateGraph\nCustomAgentState\ncitations · guardrail_passed\nmessages"]
-    HISTORY -->|injected into system prompt| GRAPH
+    subgraph GRAPH ["🕸️ LangGraph — Simple RAG Agent"]
 
-    GRAPH --> START_NODE(["START"])
-    START_NODE --> GUARDRAIL
+        START_NODE(["START"]) --> GUARDRAIL
 
-    %% ── GUARDRAIL NODE ───────────────────────────
-    subgraph GUARDRAIL_NODE ["🛡️ Guardrail Node"]
-        GUARDRAIL["GPT-4o-mini\nwith_structured_output\nInputGuardrailCheck"]
-        GUARDRAIL --> CHECKS["is_toxic\nis_prompt_injection\ncontains_pii\nis_safe · reason"]
+        GUARDRAIL["🛡️ Guardrail Node\nGPT-4o-mini\nCheck: toxic · injection · PII"]
+
+        GUARDRAIL -->|unsafe| REJECT(["❌ Reject → END"])
+        GUARDRAIL -->|safe| AGENT
+
+        AGENT["🤖 RAG Agent — GPT-4o\nChat history injected\nMust call rag_search tool"]
+
+        AGENT -->|calls tool| RAG_TOOL
+
+        subgraph RAG_TOOL ["📚 RAG Tool — retrieve_context"]
+            R1["Vector · Hybrid\nMulti-Query · RRF\nTop K chunks"]
+            R1 --> R2["prepare_prompt_and_invoke_llm\ntext · tables · images\nGPT-4o grounded answer"]
+        end
+
+        RAG_TOOL -->|ToolMessage + citations| AGENT
+        AGENT -->|done| END_NODE(["END"])
     end
 
-    CHECKS -->|is_safe = false| REJECT["❌ AIMessage\nRequest Rejected\n→ END"]
-    CHECKS -->|is_safe = true| AGENT_NODE
-
-    %% ── AGENT NODE ───────────────────────────────
-    subgraph AGENT_NODE ["🤖 Simple RAG Agent Node"]
-        AGENT["GPT-4o\ncreate_agent\nsystem_prompt + chat_history\nrecursion_limit = 5"]
-        AGENT -->|decides to call tool| TOOL_CALL["rag_search tool call\nwith query string"]
-    end
-
-    %% ── RAG TOOL ─────────────────────────────────
-    TOOL_CALL --> RETRIEVE
-
-    subgraph RETRIEVE ["🔍 retrieve_context"]
-
-        SETTINGS2["get_project_settings\nfrom Supabase"]
-        DOCIDS["get_project_document_ids\nfrom Supabase"]
-
-        SETTINGS2 --> STRATEGY{"rag_strategy?"}
-        DOCIDS --> STRATEGY
-
-        STRATEGY -->|basic| VS["vector_search\nEmbed query\nRPC: vector_search_document_chunks\ncosine similarity threshold"]
-        STRATEGY -->|hybrid| HS["hybrid_search\nvector_search + keyword_search\nRRF fusion\nvector_weight · keyword_weight"]
-        STRATEGY -->|multi-query-vector| MQV["multi_query_vector_search\ngenerate_query_variations via LLM\nN x vector_search\nRRF fusion"]
-        STRATEGY -->|multi-query-hybrid| MQH["multi_query_hybrid_search\ngenerate_query_variations via LLM\nN x hybrid_search\nRRF fusion"]
-
-        VS --> TOPK["✂️ Slice top K chunks\nfinal_context_size"]
-        HS --> TOPK
-        MQV --> TOPK
-        MQH --> TOPK
-
-        TOPK --> BUILD["build_context_from_retrieved_chunks\nBatch fetch filenames\nSeparate text / images / tables\nBuild citations list\nchunk_id · document_id\nfilename · page_number"]
-    end
-
-    BUILD --> CONTEXT["📦 Retrieved Context\ntexts · images · tables · citations"]
-
-    %% ── LLM INVOCATION ───────────────────────────
-    CONTEXT --> PROMPT["prepare_prompt_and_invoke_llm\nBuild system prompt\nInject texts + tables"]
-
-    PROMPT --> IMGCHECK{"Has Images?"}
-    IMGCHECK -->|Yes| MULTIMODAL["🖼️ Multimodal HumanMessage\ntext + base64 images\nGPT-4o vision"]
-    IMGCHECK -->|No| TEXTONLY["📝 Text-only HumanMessage"]
-
-    MULTIMODAL --> LLM["🧠 GPT-4o\nchat_llm.invoke\nAnswer grounded in context"]
-    TEXTONLY --> LLM
-
-    LLM --> TOOLMSG["ToolMessage\nresponse content\ntool_call_id"]
-    TOOLMSG -->|citations accumulate in state| AGENTSTATE["🔄 CustomAgentState\nupdated messages\nupdated citations"]
-
-    AGENTSTATE -->|recurse if needed\nmax 5 times| AGENT_NODE
-    AGENTSTATE -->|done| END_NODE(["END"])
-
-    %% ── RESPONSE ─────────────────────────────────
-    END_NODE --> EXTRACT["Extract final response\nresult messages last\nresult citations list"]
-    EXTRACT -->|Step 5 - Save AI response| MSGDB
-    EXTRACT -->|Return to client| RESPONSE["📤 JSON Response\nuser_message · ai_response\ncitations · chat_id"]
+    END_NODE --> SAVE["Save to Supabase\nmessages table"]
+    SAVE --> RESPONSE["📤 Response\nanswer + citations"]
 
 ```
 ---
