@@ -160,5 +160,48 @@ flowchart TD
     EXTRACT -->|Return to client| RESPONSE["📤 JSON Response\nuser_message · ai_response\ncitations · chat_id"]
 
 ```
+---
+## Multi Agent with RAG and webSearch :
+```mermaid
+flowchart TD
 
+    USER(["👤 User"]) -->|send message| API["⚡ FastAPI"]
 
+    API --> SETUP["Load project_settings\nLoad chat history"]
+    SETUP --> GRAPH
+
+    subgraph GRAPH ["🕸️ LangGraph — Supervisor Agent"]
+
+        START_NODE(["START"]) --> GUARDRAIL
+
+        GUARDRAIL["🛡️ Guardrail Node\nGPT-4o-mini\nCheck: toxic · injection · PII"]
+
+        GUARDRAIL -->|unsafe| REJECT(["❌ Reject → END"])
+        GUARDRAIL -->|safe| SUPERVISOR
+
+        SUPERVISOR["🧠 Supervisor — GPT-4o\nCurrent date + chat history\nDecides which tools to call"]
+
+        SUPERVISOR -->|project docs query| RAG_TOOL
+        SUPERVISOR -->|web info needed| WEB_TOOL
+        SUPERVISOR -->|greeting only| DIRECT(["💬 Direct Reply"])
+
+        subgraph RAG_TOOL ["📚 RAG Sub-Agent"]
+            R1["retrieve_context\nVector · Hybrid\nMulti-Query · RRF"]
+            R1 --> R2["GPT-4o\nGrounded answer\n+ citations"]
+        end
+
+        subgraph WEB_TOOL ["🌐 Web Sub-Agent"]
+            W1["Tavily / DuckDuckGo\nSearch internet"]
+            W1 --> W2["GPT-4o\nSynthesized\nweb answer"]
+        end
+
+        RAG_TOOL -->|ToolMessage + citations| SYNTHESIZE
+        WEB_TOOL -->|ToolMessage| SYNTHESIZE
+
+        SYNTHESIZE["📝 Supervisor\nCombines results\nFinal answer"]
+        SYNTHESIZE --> END_NODE(["END"])
+    end
+
+    END_NODE --> SAVE["Save to Supabase\nmessages table"]
+    SAVE --> RESPONSE["📤 Response\nanswer + citations"]
+```
