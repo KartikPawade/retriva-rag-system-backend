@@ -7,9 +7,6 @@
 
 <br/>
 
-[![Website](https://img.shields.io/badge/🌐_Live_Website-Visit-blue?style=for-the-badge)](YOUR_WEBSITE_URL)
-[![Demo Video](https://img.shields.io/badge/🎥_Demo_Video-Watch-red?style=for-the-badge)](YOUR_VIDEO_URL)
-
 <br/>
 
 > Multi-agent orchestration · Multiple retrieval strategies · Multimodal Support · RAG Accuracy · Websearch
