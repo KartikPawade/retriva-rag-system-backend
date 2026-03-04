@@ -6,73 +6,47 @@
 ```mermaid
 flowchart TD
 
-    %% TRIGGER
-    USER(["👤 User"])
-    USER -->|Upload File| S3["☁️ AWS S3"]
-    USER -->|Submit URL| URLDB["🔗 URL saved to Supabase"]
+    USER(["👤 User"]) -->|Upload File or URL| API["⚡ FastAPI"]
 
-    S3 -->|POST /files/confirm| API["⚡ FastAPI API"]
-    URLDB -->|POST /urls| API
+    API -->|Queue Task| CELERY["🌿 Celery + Redis\nAsync Task Queue"]
 
-    %% ASYNC QUEUE
-    API -->|Queue Task| CELERY["🌿 Celery Task\nperform_rag_ingestion_task"]
-    CELERY -->|Broker| REDIS[("🔴 Redis")]
-    REDIS -->|Worker picks up| WORKER["⚙️ Celery Worker"]
+    CELERY --> ACQUIRE{"Source Type?"}
 
-    WORKER -->|status = PROCESSING| STATUSDB[("🗄️ Supabase\nproject_documents")]
+    ACQUIRE -->|file| S3["☁️ Download from S3"]
+    ACQUIRE -->|url| CRAWL["🕷️ Crawl with ScrapingBee"]
 
-    %% STEP 1 - ACQUIRE
-    WORKER --> ACQUIRE{"Source Type?"}
-    ACQUIRE -->|file| DL["⬇️ Download from S3\nboto3"]
-    ACQUIRE -->|url| CRAWL["🕷️ Crawl URL\nScrapingBee API"]
-    DL --> TEMPFILE["📁 Temp File"]
-    CRAWL --> TEMPFILE
+    S3 --> PARTITION{"📄 File Type?"}
+    CRAWL --> PARTITION
 
-    %% STEP 2 - PARTITION
-    TEMPFILE -->|status = PARTITIONING| PARTITION{"File Type?"}
-    PARTITION -->|pdf| PDF["partition_pdf\nhi_res + tables\n+ image base64"]
-    PARTITION -->|docx| DOCX["partition_docx\nhi_res + tables"]
-    PARTITION -->|pptx| PPTX["partition_pptx"]
+    PARTITION -->|pdf| PDF["partition_pdf\nhi_res · tables · images"]
+    PARTITION -->|docx| DOCX["partition_docx\nhi_res · tables"]
+    PARTITION -->|pptx| PPTX["partition_pptx\nhi_res · tables"]
     PARTITION -->|txt| TXT["partition_text"]
     PARTITION -->|md| MD["partition_md"]
-    PARTITION -->|html| HTML["partition_html"]
+    PARTITION -->|html / url| HTML["partition_html"]
 
-    PDF --> ELEMENTS["🧩 Unstructured Elements\nTitle · NarrativeText\nTable · Image · ListItem"]
+    PDF --> ELEMENTS["🧩 Unstructured Elements\nTitle · NarrativeText · Table · Image"]
     DOCX --> ELEMENTS
     PPTX --> ELEMENTS
     TXT --> ELEMENTS
     MD --> ELEMENTS
     HTML --> ELEMENTS
 
-    ELEMENTS --> ANALYZE["📊 analyze_elements\nCount text / tables / images"]
-    ANALYZE -->|elements summary| STATUSDB
-    ELEMENTS -->|cleanup| CLEANUP["🗑️ Delete Temp File"]
+    ELEMENTS --> CHUNK["✂️ Semantic Chunking\nchunk_by_title\nmax 3000 chars"]
 
-    %% STEP 3 - CHUNKING
-    ANALYZE -->|status = CHUNKING| CHUNK["✂️ chunk_by_title\nmax 3000 chars\nnew after 2400\ncombine under 500"]
-    CHUNK -->|metrics| STATUSDB
-    CHUNK --> CHUNKS["📦 Semantic Chunks"]
+    CHUNK --> SUMMARIZE{"Has Table\nor Image?"}
 
-    %% STEP 4 - SUMMARISATION
-    CHUNKS -->|status = SUMMARISING| SEPARATE["🔍 separate_content_types\ntext · tables · images"]
-    SEPARATE --> HASRICH{"Has Table\nor Image?"}
-    HASRICH -->|Yes| AISUM["🤖 GPT-4o\nAI Summary\nDescribes tables + images\nas searchable text"]
-    HASRICH -->|No| PLAIN["📝 Use raw text"]
-    AISUM --> PROCESSED["✅ processed_chunk\ncontent · original_content\ntype · page_number · char_count"]
-    PLAIN --> PROCESSED
+    SUMMARIZE -->|Yes| AI["🤖 GPT-4o\nAI Summary"]
+    SUMMARIZE -->|No| RAW["📝 Raw Text"]
 
-    %% STEP 5 - VECTORISATION
-    PROCESSED -->|status = VECTORIZATION| BATCH["🔢 Batch Size = 10"]
-    BATCH --> EMBED["🧠 OpenAI Embeddings\ntext-embedding-3-small\n1536 dimensions"]
-    EMBED -->|Rate limit hit| RETRY["🔄 Exponential Backoff\nmax 3 retries"]
-    RETRY --> EMBED
-    EMBED --> VECTORS["📐 Embedding Vectors\n1536-dim per chunk"]
+    AI --> EMBED
+    RAW --> EMBED
 
-    %% STEP 6 - STORAGE
-    VECTORS --> ZIP["🔗 zip chunks + embeddings"]
-    ZIP --> INSERT["💾 INSERT to Supabase"]
-    INSERT -->|status = COMPLETED| STATUSDB
-    INSERT --> PGVECTOR[("🐘 PostgreSQL + pgvector\ndocument_chunks\nid · content · original_content\ntype · page_number · embedding\nfts tsvector")]
+    EMBED["🧠 OpenAI Embeddings\ntext-embedding-3-small\n1536 dimensions"]
+
+    EMBED --> STORE[("🐘 Supabase pgvector\ndocument_chunks")]
+
+    STORE -->|status updates throughout| DB[("🗄️ Supabase\nprocessing_status")]
 ```
 ---
 
