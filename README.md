@@ -295,7 +295,98 @@ users
       └── chats
            └── messages      (role · content · created_at)
 ```
+```mermaid
+erDiagram
+    users {
+        uuid id PK
+        string clerk_id UK
+        timestamp created_at
+    }
 
+    projects {
+        uuid id PK
+        string name
+        string description
+        string clerk_id FK
+        timestamp created_at
+    }
+
+    project_settings {
+        uuid id PK
+        uuid project_id FK
+        string embedding_model
+        string rag_strategy
+        string agent_type
+        int chunks_per_search
+        int final_context_size
+        decimal similarity_threshold
+        int number_of_queries
+        boolean reranking_enabled
+        string reranking_model
+        decimal vector_weight
+        decimal keyword_weight
+        timestamp created_at
+    }
+
+    project_documents {
+        uuid id PK
+        uuid project_id FK
+        string clerk_id FK
+        string filename
+        string s3_key
+        int file_size
+        string file_type
+        string processing_status
+        json processing_details
+        string task_id
+        string source_type
+        string source_url
+        timestamp created_at
+    }
+
+    document_chunks {
+        uuid id PK
+        uuid document_id FK
+        string content
+        int chunk_index
+        int page_number
+        int char_count
+        json type
+        json original_content
+        vector embedding
+        tsvector fts
+        timestamp created_at
+    }
+
+    chats {
+        uuid id PK
+        string title
+        uuid project_id FK
+        string clerk_id FK
+        timestamp created_at
+    }
+
+    messages {
+        uuid id PK
+        string content
+        string role
+        uuid chat_id FK
+        string clerk_id FK
+        json citations
+        string trace_id
+        timestamp created_at
+    }
+
+    users ||--o{ projects : "owns"
+    users ||--o{ project_documents : "uploads"
+    users ||--o{ chats : "creates"
+    users ||--o{ messages : "sends"
+    projects ||--|| project_settings : "configured by"
+    projects ||--o{ project_documents : "contains"
+    projects ||--o{ chats : "has"
+    project_documents ||--o{ document_chunks : "split into"
+    chats ||--o{ messages : "contains"
+```
 ---
 
 ## 📁 Project Structure
