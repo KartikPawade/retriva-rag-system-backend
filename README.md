@@ -1,16 +1,53 @@
 <div align="center">
 
-# 🔍 Retriva RAG
+<br/>
 
-### A production-ready Retrieval-Augmented Generation backend
-### that lets you chat with your documents using AI
+<!-- Animated Title -->
+<h1>
+  <img src="https://readme-typing-svg.demolab.com?font=Orbitron&weight=900&size=42&duration=3000&pause=1000&color=6366F1&center=true&vCenter=true&width=600&lines=Retriva+RAG+System" alt="Retriva RAG System" />
+</h1>
+
+<p>
+  <img src="https://img.shields.io/badge/-%E2%9A%A1%20Production--Ready%20RAG%20Backend-6366f1?style=for-the-badge&labelColor=0f0f0f&color=6366f1" />
+</p>
+
+<h3>
+  <p>A production-ready RAG system built for accuracy — remembers context, supports web search, configurable retrieval strategies, guradrails for multi-agents flow along with RAG agent, multimodal support for images & tables across different formats, smart chunking for accuracy, and high RAGAS evaluation scores.</p>
+</h3>
 
 <br/>
 
+<!-- Badges Row -->
+<p>
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
+  <img src="https://img.shields.io/badge/RAG-Powered-6366f1?style=flat-square&logo=openai&logoColor=white" />
+  <img src="https://img.shields.io/badge/Vector_DB-Ready-10b981?style=flat-square&logo=databricks&logoColor=white" />
+  <img src="https://img.shields.io/badge/🤖 Agentic_RAG-Enabled-7c3aed?style=flat-square" />
+  <img src="https://img.shields.io/badge/🎯 Accuracy-High-16a34a?style=flat-square" />
+  <img src="https://img.shields.io/badge/🌐 Web_Search-Enabled-0ea5e9?style=flat-square&logo=googlechrome&logoColor=white" />
+  <img src="https://img.shields.io/badge/🦜 LangChain-Integrated-1c3f59?style=flat-square&logo=chainlink&logoColor=white" />
+  <img src="https://img.shields.io/badge/🕸️ LangGraph-Integrated-ef4444?style=flat-square" />
+  <img src="https://img.shields.io/badge/🧠 Multi_Agent_RAG-Powered-8b5cf6?style=flat-square" />
+  <img src="https://img.shields.io/badge/✅ High_Accuracy-Optimized-22c55e?style=flat-square" />
+  <img src="https://img.shields.io/badge/🖼️ Multimodal-Supported-f59e0b?style=flat-square&logo=files&logoColor=white" />
+</p>
+
 <br/>
 
-> Multi-agent orchestration · Multiple retrieval strategies · Multimodal Support · RAG Accuracy · Websearch
 
+
+<!-- CTA Buttons --
+<a href="https://retriva-rag-system-client.vercel.app/">
+  <img src="https://img.shields.io/badge/🌐 Live Website-Visit Now-6366f1?style=for-the-badge&labelColor=0f0f0f" />
+</a>
+-->
+&nbsp;
+<a href="https://www.loom.com/share/d673ed7d86e441b688230eba1c4b18a7">
+  <img src="https://img.shields.io/badge/▶ Watch Demo-Loom Video-e11d48?style=for-the-badge&labelColor=0f0f0f" />
+</a>
+
+<br/>
 </div>
 
 ---
@@ -75,7 +112,7 @@
 | **Task Queue** | Celery · Redis |
 | **Document Parsing** | Unstructured |
 | **Web Crawling** | ScrapingBee |
-| **LLM & Embeddings** | OpenAI (GPT-4o · text-embedding-3-small) |
+| **LLM & Embeddings** | OpenAI (GPT-4o · text-embedding-3-large 1536) |
 | **Agent Framework** | LangChain · LangGraph |
 | **Web Search** | Tavily · DuckDuckGo |
 | **Logging** | structlog |
@@ -126,7 +163,7 @@ flowchart TD
     AI --> EMBED
     RAW --> EMBED
 
-    EMBED["🧠 OpenAI Embeddings\ntext-embedding-3-small\n1536 dimensions"]
+    EMBED["🧠 OpenAI Embeddings\ntext-embedding-3-large\n1536 dimensions"]
 
     EMBED --> STORE[("🐘 Supabase pgvector\ndocument_chunks")]
 
