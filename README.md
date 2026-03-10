@@ -43,7 +43,7 @@
 </a>
 -->
 &nbsp;
-<a href="https://www.loom.com/share/d673ed7d86e441b688230eba1c4b18a7">
+<a href="https://www.loom.com/share/d682c0dfd2f14423aa326e146bf5cedd">
   <img src="https://img.shields.io/badge/▶ Watch Demo-Loom Video-e11d48?style=for-the-badge&labelColor=0f0f0f" />
 </a>
 
